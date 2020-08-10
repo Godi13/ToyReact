@@ -1,27 +1,55 @@
 import Toy, { Component } from './Toy.js';
 
-class MyComponent extends Component {
+class Board extends Component {
+  renderSquare(i) {
+    return (
+      <Square value={i} />
+    );
+  }
+
   render() {
     return (
       <div>
-        <span>hello </span>
-        <span>world</span>
-        <span>!</span>
-        <div>
-          {true}
+        <div className="board-row">
+          {this.renderSquare(0)}
+          {this.renderSquare(1)}
+          {this.renderSquare(2)}
         </div>
-        {this.children}
+        <div className="board-row">
+          {this.renderSquare(3)}
+          {this.renderSquare(4)}
+          {this.renderSquare(5)}
+        </div>
+        <div className="board-row">
+          {this.renderSquare(6)}
+          {this.renderSquare(7)}
+          {this.renderSquare(8)}
+        </div>
       </div>
-    )
+    );
+  }
+}
+
+class Square extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      value: '',
+    };
+  }
+
+  render() {
+    const { value } = this.state;
+    return (
+      <button className="square" onClick={() => this.setState({ value: value ? '' : 'X' })}>
+        {this.state.value}
+      </button>
+    );
   }
 }
 
 const a = (
-  <MyComponent name="111" id="2">
-    <div>111</div>
-    <div>222</div>
-    <div>333</div>
-  </MyComponent>
+  <Board />
 )
 
 Toy.render(

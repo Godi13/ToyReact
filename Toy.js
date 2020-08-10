@@ -3,13 +3,29 @@ class ElementWrapper {
     this.root = document.createElement(type);
   }
   setAttribute(key, value) {
-    this.root.setAttribute(key, value);
+    if (key.match(/^on([\s\S]+)$/)) {
+      const eventName = RegExp.$1.replace(/^[\s\S]/, (s) => s.toLowerCase())
+      this.root.addEventListener(eventName, value);
+    }
+    if (key === 'className') {
+      this.root.setAttribute('class', value);
+    } else {
+      this.root.setAttribute(key, value);
+    }
   }
   appendChild(vchild) {
-    vchild.mountTo(this.root);
+    const range = document.createRange();
+    if (this.root.children.length) {
+      range.setStartAfter(this.root.lastChild);
+      range.setEndAfter(this.root.lastChild);
+    } else {
+      range.setStart(this.root, 0);
+      range.setEnd(this.root, 0);
+    }
+    vchild.mountTo(range);
   }
-  mountTo(parent) {
-    parent.appendChild(this.root);
+  mountTo(range) {
+    range.insertNode(this.root);
   }
 }
 
@@ -17,24 +33,58 @@ class TextWrapper {
   constructor(content) {
     this.root = document.createTextNode(content);
   }
-  mountTo(parent) {
-    parent.appendChild(this.root);
+  mountTo(range) {
+    range.insertNode(this.root);
   }
 }
 
 export class Component {
   constructor() {
+    this.props = Object.create(null)
     this.children = []
   }
   setAttribute(key, value) {
+    this.props[key] = value;
     this[key] = value;
   }
-  mountTo(parent) {
+  mountTo(range) {
+    this.range = range;
+    this.update();
+  }
+  update() {
+    const placeholder = document.createComment('placeholder')
+    const range = document.createRange();
+    range.setStart(this.range.endContainer, this.range.endOffset);
+    range.setEnd(this.range.endContainer, this.range.endOffset);
+    range.insertNode(placeholder);
+
+    this.range.deleteContents();
     const vdom = this.render();
-    vdom.mountTo(parent);
+    vdom.mountTo(this.range);
   }
   appendChild(vchild) {
     this.children.push(vchild);
+  }
+  setState(state) {
+    const merge = (oldState, newState) => {
+      for (let k in newState) {
+        if (typeof newState[k] === 'object') {
+          if (typeof oldState[k] !== 'object') {
+            oldState[k] = {};
+          }
+          merge(oldState[k], newState[k])
+        } else {
+          oldState[k] = newState[k];
+        }
+      }
+    }
+
+    if (!this.state && state) {
+      this.state = {}
+    }
+
+    merge(this.state, state);
+    this.update();
   }
 }
 
@@ -68,8 +118,15 @@ export default {
 
     return element;
   },
-  render(vdom, parent) {
-    console.log(vdom)
-    vdom.mountTo(parent);
+  render(vdom, element) {
+    const range = document.createRange();
+    if (element.children.length) {
+      range.setStartAfter(element.firstChild);
+      range.setEndAfter(element.firstChild);
+    } else {
+      range.setStart(element[0], 0);
+      range.setEnd(element[0], 0);
+    }
+    vdom.mountTo(range);
   }
 }
